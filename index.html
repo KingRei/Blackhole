@@ -3,415 +3,747 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>黑洞模擬器 — Black Hole Simulator</title>
+<title>黑洞觀測台 — Black Hole Observatory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#020308;font-family:'Noto Sans TC',sans-serif;color:#c8d2e0;overflow:hidden}
-canvas{position:fixed;inset:0;display:block;cursor:ns-resize}
-.hud{position:fixed;top:22px;left:26px;pointer-events:none;z-index:2}
-.hud h1{font-size:15px;letter-spacing:.4em;font-weight:500;color:#eef2f8;margin:0}
-.hud .sub{font-size:10.5px;letter-spacing:.24em;color:#5f6b7d;margin-top:4px}
-.stats{margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8fa0b8;line-height:1.95;white-space:pre}
-.stats b{color:#e8a44c;font-weight:500}
-.hint{position:fixed;bottom:14px;left:26px;font-size:11px;letter-spacing:.12em;color:#4c5666;z-index:2;pointer-events:none}
-.panel{position:fixed;top:20px;right:20px;width:296px;background:rgba(10,14,22,.74);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(130,160,210,.14);border-radius:14px;padding:18px 18px 14px;max-height:calc(100vh - 40px);overflow-y:auto;z-index:3}
-.tabs{display:flex;gap:6px;margin-bottom:6px}
-.tab{flex:1;text-align:center;font-size:12.5px;padding:8px 0;border-radius:8px;border:1px solid rgba(130,160,210,.16);color:#8fa0b8;cursor:pointer;user-select:none;transition:.15s}
-.tab.on{background:rgba(232,164,76,.13);color:#f0e2c8;border-color:rgba(232,164,76,.45)}
-.sec{font-size:10.5px;letter-spacing:.28em;color:#5f6b7d;margin:16px 0 9px}
-.row{display:flex;align-items:center;gap:10px;margin:0 0 9px;font-size:12px}
-.row label{width:74px;flex:none;color:#93a2b8}
-.row input[type=range]{flex:1;accent-color:#e8a44c;height:3px;cursor:pointer}
-.row output{width:60px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#e6ecf5}
-.chk{display:flex;align-items:center;gap:9px;font-size:12px;color:#93a2b8;margin:0 0 9px;cursor:pointer;user-select:none}
+html,body{height:100%}
+body{margin:0;background:#04060c;font-family:'Noto Sans TC',sans-serif;color:#c8d2e0;overflow:hidden;
+ display:grid;grid-template-columns:250px 1fr 292px;grid-template-rows:52px 1fr 128px;
+ grid-template-areas:"hud hud hud" "left main right" "strip strip strip";gap:10px;padding:10px}
+.hud{grid-area:hud;display:flex;align-items:center;gap:22px;padding:0 8px}
+.hud h1{font-size:14px;letter-spacing:.4em;font-weight:500;color:#eef2f8;margin:0;white-space:nowrap}
+.hud .sub{font-size:10px;letter-spacing:.22em;color:#5f6b7d;white-space:nowrap}
+.hud .phase{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#e8a44c;margin-left:auto;white-space:nowrap}
+.hud .clock{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6d7a8e;white-space:nowrap}
+.rail{background:rgba(11,15,24,.72);border:1px solid rgba(130,160,210,.13);border-radius:14px;padding:14px 14px 10px;overflow-y:auto;backdrop-filter:blur(14px)}
+#left{grid-area:left}
+#right{grid-area:right}
+#mainwrap{grid-area:main;position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(130,160,210,.1);background:#010208}
+#c{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+#c:active{cursor:grabbing}
+.viewhint{position:absolute;left:12px;bottom:10px;font-size:10.5px;letter-spacing:.12em;color:#3d4757;pointer-events:none}
+#stripwrap{grid-area:strip;position:relative;background:rgba(11,15,24,.72);border:1px solid rgba(130,160,210,.13);border-radius:14px;overflow:hidden}
+#strip{position:absolute;inset:0;width:100%;height:100%}
+#striplab{position:absolute;top:8px;left:14px;font-size:10.5px;letter-spacing:.24em;color:#5f6b7d;pointer-events:none}
+#stripval{position:absolute;top:8px;right:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8a44c;pointer-events:none}
+.scen{display:flex;flex-direction:column;gap:5px;margin-bottom:6px}
+.sbtn{text-align:left;font-size:12.5px;padding:7px 10px;border-radius:8px;border:1px solid rgba(130,160,210,.14);color:#8fa0b8;cursor:pointer;user-select:none;background:transparent;font-family:inherit;transition:.15s}
+.sbtn.on{background:rgba(232,164,76,.12);color:#f0e2c8;border-color:rgba(232,164,76,.45)}
+.sbtn:hover{border-color:rgba(160,185,230,.4)}
+.sec{font-size:10.5px;letter-spacing:.28em;color:#5f6b7d;margin:15px 0 8px}
+.row{display:flex;align-items:center;gap:9px;margin:0 0 8px;font-size:12px}
+.row label{width:70px;flex:none;color:#93a2b8}
+.row input[type=range]{flex:1;accent-color:#e8a44c;height:3px;cursor:pointer;min-width:0}
+.row output{width:58px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e6ecf5}
+.row select{flex:1;background:#0d1220;border:1px solid rgba(130,160,210,.2);color:#dfe6f0;border-radius:6px;padding:4px 6px;font-size:11.5px;font-family:inherit}
+.chk{display:flex;align-items:center;gap:8px;font-size:12px;color:#93a2b8;margin:0 0 8px;cursor:pointer;user-select:none}
 .chk input{accent-color:#e8a44c;cursor:pointer}
-.btns{display:flex;gap:8px;margin-top:14px}
-button{flex:1;background:rgba(232,164,76,.08);border:1px solid rgba(232,164,76,.3);color:#f0e2c8;font:500 12.5px 'Noto Sans TC',sans-serif;padding:8px 0;border-radius:8px;cursor:pointer;transition:.15s}
-button:hover{background:rgba(232,164,76,.18)}
-button:focus-visible,.tab:focus-visible{outline:2px solid #e8a44c;outline-offset:2px}
+button.act{width:100%;background:rgba(232,164,76,.08);border:1px solid rgba(232,164,76,.3);color:#f0e2c8;font:500 12.5px 'Noto Sans TC',sans-serif;padding:8px 0;border-radius:8px;cursor:pointer;transition:.15s;margin:2px 0 6px}
+button.act:hover{background:rgba(232,164,76,.18)}
+button:focus-visible,.sbtn:focus-visible{outline:2px solid #e8a44c;outline-offset:2px}
 .hidden{display:none}
-.note{font-size:10.5px;color:#4c5666;margin-top:12px;line-height:1.7}
-@media (max-width:680px){
- .panel{left:10px;right:10px;top:auto;bottom:10px;width:auto;max-height:44vh}
- .hud{top:14px;left:16px}.hint{display:none}
+#mini{width:100%;height:150px;border-radius:8px;background:#050810;border:1px solid rgba(130,160,210,.1)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.card{background:rgba(20,27,42,.55);border:1px solid rgba(130,160,210,.1);border-radius:8px;padding:7px 9px}
+.card .k{font-size:10px;letter-spacing:.08em;color:#6d7a8e;margin-bottom:3px}
+.card .v{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#e6ecf5;word-break:break-all}
+#log{list-style:none;margin:0;padding:0;font-size:11px;line-height:1.6}
+#log li{padding:5px 0;border-bottom:1px solid rgba(130,160,210,.08);color:#93a2b8}
+#log li b{color:#e8a44c;font-family:'IBM Plex Mono',monospace;font-weight:500;margin-right:7px}
+@media (max-width:900px){
+ body{display:block;overflow-y:auto;height:auto}
+ #mainwrap{height:44vh;margin-bottom:10px}
+ #stripwrap{height:96px;position:relative;margin-bottom:10px}
+ .rail{margin-bottom:10px;max-height:none}
+ .hud{height:auto;flex-wrap:wrap;gap:10px;padding:6px 4px}
+ .viewhint{display:none}
 }
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
 
 <header class="hud">
-  <h1>黑洞模擬器</h1>
-  <div class="sub">RELATIVISTIC ACCRETION · TOY MODEL</div>
-  <div class="stats" id="stats"></div>
+  <h1>黑洞觀測台</h1>
+  <span class="sub">RELATIVISTIC TOY OBSERVATORY</span>
+  <span class="phase" id="phase"></span>
+  <span class="clock" id="clock">T+00:00</span>
 </header>
-<div class="hint">拖曳畫面可調整傾角 ・ 空白鍵暫停</div>
 
-<aside class="panel" aria-label="控制面板">
-  <div class="tabs" role="tablist">
-    <div class="tab on" id="tab-s" role="tab" tabindex="0">單一黑洞</div>
-    <div class="tab" id="tab-b" role="tab" tabindex="0">雙黑洞合併</div>
+<aside class="rail" id="left" aria-label="情境與參數">
+  <div class="sec" style="margin-top:2px">情境</div>
+  <div class="scen">
+    <button class="sbtn on" data-sc="kerr">克爾黑洞 · 自旋與噴流</button>
+    <button class="sbtn" data-sc="bin">雙黑洞 · 旋近合併</button>
+    <button class="sbtn" data-sc="tde">潮汐撕裂事件 TDE</button>
+    <button class="sbtn" data-sc="lens">星場重力透鏡</button>
+    <button class="sbtn" data-sc="evap">霍金蒸發</button>
   </div>
 
-  <div class="sec">共同參數</div>
-  <div class="row"><label for="inc">傾角</label><input type="range" id="inc" min="0" max="88" step="1" value="68"><output id="inc-v"></output></div>
+  <div id="g-kerr">
+    <div class="sec">克爾黑洞</div>
+    <div class="row"><label for="spin">自旋 a*</label><input type="range" id="spin" min="0" max="0.998" step="0.002" value="0.6"><output id="spin-v"></output></div>
+    <div class="row"><label for="rout">盤外緣</label><input type="range" id="rout" min="5" max="16" step="0.5" value="10"><output id="rout-v"></output></div>
+    <div class="row"><label for="num">粒子密度</label><input type="range" id="num" min="800" max="5000" step="100" value="3000"><output id="num-v"></output></div>
+    <label class="chk"><input type="checkbox" id="jet" checked>相對論性噴流</label>
+    <div class="row"><label for="jpow">噴流功率</label><input type="range" id="jpow" min="0.1" max="1" step="0.05" value="0.5"><output id="jpow-v"></output></div>
+    <div class="row"><label for="jprec">噴流進動</label><input type="range" id="jprec" min="0" max="25" step="1" value="8"><output id="jprec-v"></output></div>
+  </div>
+
+  <div id="g-bin" class="hidden">
+    <div class="sec">雙黑洞系統</div>
+    <div class="row"><label for="q">質量比 q</label><input type="range" id="q" min="0.3" max="1" step="0.05" value="0.8"><output id="q-v"></output></div>
+    <div class="row"><label for="a0">初始間距</label><input type="range" id="a0" min="8" max="20" step="0.5" value="14"><output id="a0-v"></output></div>
+    <div class="row"><label for="ecc">偏心率 e</label><input type="range" id="ecc" min="0" max="0.6" step="0.05" value="0.2"><output id="ecc-v"></output></div>
+    <div class="row"><label for="rate">旋近速率</label><input type="range" id="rate" min="0" max="1" step="0.05" value="0.35"><output id="rate-v"></output></div>
+    <label class="chk"><input type="checkbox" id="kick" checked>合併反衝踢速</label>
+    <label class="chk"><input type="checkbox" id="ripples" checked>重力波漣漪</label>
+    <label class="chk"><input type="checkbox" id="grid" checked>時空網格</label>
+    <button class="act" id="resetbin">重置系統</button>
+  </div>
+
+  <div id="g-tde" class="hidden">
+    <div class="sec">潮汐撕裂</div>
+    <div class="row"><label for="rp">近心距</label><input type="range" id="rp" min="1.5" max="4.5" step="0.1" value="2.5"><output id="rp-v"></output></div>
+    <div class="row"><label for="mstar">恆星質量</label><input type="range" id="mstar" min="0.3" max="2" step="0.1" value="1"><output id="mstar-v"></output></div>
+    <button class="act" id="resettde">重新投放恆星</button>
+  </div>
+
+  <div id="g-lens" class="hidden">
+    <div class="sec">星場透鏡</div>
+    <div class="row"><label for="thE">愛因斯坦半徑</label><input type="range" id="thE" min="1" max="5" step="0.1" value="2.5"><output id="thE-v"></output></div>
+    <div class="row"><label for="lvel">橫越速度</label><input type="range" id="lvel" min="0" max="4" step="0.1" value="1.2"><output id="lvel-v"></output></div>
+    <div class="row"><label for="dens">星場密度</label><input type="range" id="dens" min="150" max="800" step="25" value="420"><output id="dens-v"></output></div>
+    <label class="chk"><input type="checkbox" id="ering" checked>顯示愛因斯坦環</label>
+  </div>
+
+  <div id="g-evap" class="hidden">
+    <div class="sec">霍金蒸發</div>
+    <div class="row"><label for="em0">初始質量</label><input type="range" id="em0" min="1" max="3.5" step="0.1" value="2.2"><output id="em0-v"></output></div>
+    <div class="row"><label for="erate">蒸發加速</label><input type="range" id="erate" min="0.2" max="3" step="0.1" value="1"><output id="erate-v"></output></div>
+    <button class="act" id="resetevap">重新生成黑洞</button>
+  </div>
+
+  <div class="sec">相機與觀測</div>
+  <div class="row"><label for="inc">傾角</label><input type="range" id="inc" min="0" max="88" step="1" value="66"><output id="inc-v"></output></div>
+  <div class="row"><label for="azi">方位角</label><input type="range" id="azi" min="0" max="360" step="1" value="0"><output id="azi-v"></output></div>
+  <div class="row"><label for="zoom">縮放</label><input type="range" id="zoom" min="0.4" max="2.5" step="0.05" value="1"><output id="zoom-v"></output></div>
+  <div class="row"><label for="band">觀測波段</label><select id="band"><option value="vis">可見光</option><option value="xray">X 光</option><option value="radio">電波</option></select></div>
+
+  <div class="sec">物理參數</div>
+  <div class="row"><label for="logm">質量 M</label><input type="range" id="logm" min="0" max="9" step="0.1" value="6"><output id="logm-v"></output></div>
+  <div class="row"><label for="mdot">吸積率</label><input type="range" id="mdot" min="0.05" max="1.5" step="0.05" value="0.5"><output id="mdot-v"></output></div>
   <div class="row"><label for="spd">時間流速</label><input type="range" id="spd" min="0" max="3" step="0.05" value="1"><output id="spd-v"></output></div>
   <div class="row"><label for="dop">都卜勒集束</label><input type="range" id="dop" min="0" max="1" step="0.05" value="0.7"><output id="dop-v"></output></div>
   <div class="row"><label for="lens">重力透鏡</label><input type="range" id="lens" min="0" max="1" step="0.05" value="0.85"><output id="lens-v"></output></div>
   <div class="row"><label for="tmp">盤面溫度</label><input type="range" id="tmp" min="3000" max="15000" step="100" value="6800"><output id="tmp-v"></output></div>
-
-  <div id="g-single">
-    <div class="sec">單一黑洞</div>
-    <div class="row"><label for="rout">吸積盤半徑</label><input type="range" id="rout" min="4" max="14" step="0.5" value="9"><output id="rout-v"></output></div>
-    <div class="row"><label for="num">粒子密度</label><input type="range" id="num" min="600" max="5000" step="100" value="2800"><output id="num-v"></output></div>
-  </div>
-
-  <div id="g-binary" class="hidden">
-    <div class="sec">雙黑洞系統</div>
-    <div class="row"><label for="q">質量比 q</label><input type="range" id="q" min="0.3" max="1" step="0.05" value="0.8"><output id="q-v"></output></div>
-    <div class="row"><label for="a0">初始間距</label><input type="range" id="a0" min="8" max="20" step="0.5" value="14"><output id="a0-v"></output></div>
-    <div class="row"><label for="rate">旋近速率</label><input type="range" id="rate" min="0" max="1" step="0.05" value="0.35"><output id="rate-v"></output></div>
-    <label class="chk"><input type="checkbox" id="ripples" checked>重力波漣漪</label>
-    <label class="chk"><input type="checkbox" id="grid" checked>時空網格</label>
-  </div>
-
-  <div class="btns">
-    <button id="pause">暫停</button>
-    <button id="reset" class="hidden">重置系統</button>
-  </div>
-  <div class="note" id="modenote">內側物質以克卜勒速度公轉，接近你的一側因相對論性集束而增亮偏藍。</div>
+  <button class="act" id="pause" style="margin-top:10px">暫停</button>
 </aside>
+
+<div id="mainwrap">
+  <canvas id="c"></canvas>
+  <div class="viewhint">拖曳=傾角/方位角 ・ 滾輪=縮放 ・ 空白鍵=暫停</div>
+</div>
+
+<aside class="rail" id="right" aria-label="儀表">
+  <div class="sec" style="margin-top:2px">軌道儀 · 俯視</div>
+  <canvas id="mini"></canvas>
+  <div class="sec">即時數據</div>
+  <div class="cards" id="cards"></div>
+  <div class="sec">事件記錄</div>
+  <ul id="log"></ul>
+</aside>
+
+<div id="stripwrap">
+  <canvas id="strip"></canvas>
+  <span id="striplab"></span>
+  <span id="stripval"></span>
+</div>
 
 <script>
 'use strict';
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-let W=0,H=0,DPR=1;
-function resize(){DPR=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
-resize();addEventListener('resize',resize);
-
 const TAU=Math.PI*2;
-const C={mode:'single',inc:68,spd:1,dop:0.7,lens:0.85,tmp:6800,rout:9,num:2800,q:0.8,a0:14,rate:0.35,ripples:true,grid:true};
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const mn=document.getElementById('mini'),mtx=mn.getContext('2d');
+const st=document.getElementById('strip'),stx=st.getContext('2d');
+let W=0,H=0,MW=0,MH=0,SW=0,SH=0,DPR=1;
+function resize(){DPR=Math.min(window.devicePixelRatio||1,2);
+ W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.max(1,W*DPR);cv.height=Math.max(1,H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
+ MW=mn.clientWidth;MH=mn.clientHeight;mn.width=Math.max(1,MW*DPR);mn.height=Math.max(1,MH*DPR);mtx.setTransform(DPR,0,0,DPR,0,0);
+ SW=st.clientWidth;SH=st.clientHeight;st.width=Math.max(1,SW*DPR);st.height=Math.max(1,SH*DPR);stx.setTransform(DPR,0,0,DPR,0,0);}
+addEventListener('resize',resize);
 
-const stars=[];for(let i=0;i<280;i++)stars.push([Math.random(),Math.random(),Math.random()*1.4+0.3,Math.random()*0.5+0.12]);
+const C={sc:'kerr',inc:66,azi:0,zoom:1,spd:1,dop:0.7,lens:0.85,tmp:6800,band:'vis',logm:6,mdot:0.5,
+ spin:0.6,rout:10,num:3000,jet:true,jpow:0.5,jprec:8,
+ q:0.8,a0:14,ecc:0.2,rate:0.35,kick:true,ripples:true,grid:true,
+ rp:2.5,mstar:1,thE:2.5,lvel:1.2,dens:420,ering:true,em0:2.2,erate:1};
+
+const stars=[];for(let i=0;i<240;i++)stars.push([Math.random(),Math.random(),Math.random()*1.4+0.3,Math.random()*0.5+0.12]);
 
 function bb(t){t/=100;let r,g,b;
 r=t<=66?255:329.7*Math.pow(t-60,-0.1332);
 g=t<=66?99.47*Math.log(t)-161.1:288.1*Math.pow(t-60,-0.0755);
 b=t>=66?255:(t<=19?0:138.5*Math.log(t-10)-305.04);
 return[Math.max(0,Math.min(255,r)),Math.max(0,Math.min(255,g)),Math.max(0,Math.min(255,b))];}
+function bandCol(){const v=bb(C.tmp);
+ if(C.band==='xray')return[v[0]*0.35+150*0.65,v[1]*0.35+185*0.65,v[2]*0.35+255*0.65];
+ if(C.band==='radio')return[255,150,80];return v;}
+function bandSteep(){return C.band==='xray'?2.8:2;}
+function sci(x){if(!isFinite(x))return'—';if(x===0)return'0';
+ const e=Math.floor(Math.log10(Math.abs(x)));if(e>=-2&&e<=3)return x.toPrecision(3);
+ return (x/Math.pow(10,e)).toFixed(2)+'e'+e;}
+function iscoM(a){const Z1=1+Math.cbrt(1-a*a)*(Math.cbrt(1+a)+Math.cbrt(1-a));
+ const Z2=Math.sqrt(3*a*a+Z1*Z1);return 3+Z2-Math.sqrt((3-Z1)*(3+Z1+2*Z2));}
 
-/* ---------- single mode ---------- */
-const MAXN=5000;
-const sr=new Float32Array(MAXN),sp=new Float32Array(MAXN),sj=new Float32Array(MAXN);
-function seedSingle(){for(let i=0;i<MAXN;i++){const u=Math.random();sr[i]=2.6+(C.rout-2.6)*Math.pow(u,1.6);sp[i]=Math.random()*TAU;sj[i]=0.55+Math.random()*0.9;}}
-seedSingle();
+/* view */
+const V={};
+function beginView(){V.cx=W*0.5;V.cy=H*0.5;V.S=Math.min(W,H)*0.052*C.zoom;
+ const inc=C.inc*Math.PI/180;V.cI=Math.cos(inc);V.sI=Math.sin(inc);
+ const az=C.azi*Math.PI/180;V.ca=Math.cos(az);V.sa=Math.sin(az);V.az=az;}
+function rot(px,pz){return[px*V.ca+pz*V.sa,-px*V.sa+pz*V.ca];}
+function prj(px,pz,py){const r=rot(px,pz);return[V.cx+r[0]*V.S,V.cy-(r[1]*V.cI+(py||0)*V.sI)*V.S];}
+function drawStars(fd){ctx.globalCompositeOperation='source-over';
+ ctx.fillStyle='#010208';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='rgba(255,255,255,0.85)';
+ for(const s of stars){ctx.globalAlpha=s[3];ctx.fillRect(s[0]*W,s[1]*H,s[2],s[2]);}
+ ctx.globalAlpha=1;}
 
-/* ---------- binary mode ---------- */
+function shadow(bx,bz,R,rf,ox){
+ const rb=rot(bx,bz),col=bandCol();
+ const sx=V.cx+rb[0]*V.S,sy=V.cy-rb[1]*V.cI*V.S;
+ ctx.globalCompositeOperation='source-over';
+ ctx.fillStyle='#000';ctx.beginPath();ctx.arc(sx,sy,R*V.S,0,TAU);ctx.fill();
+ ctx.globalCompositeOperation='lighter';
+ const ro=ox?rot(ox,0):[0,0];
+ const rx=sx+ro[0]*V.S,ry=sy-ro[1]*V.cI*V.S;
+ const ra=C.band==='radio'?0.7:0.45;
+ ctx.lineWidth=1.4;ctx.strokeStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+ra+')';
+ ctx.beginPath();ctx.arc(rx,ry,R*V.S*1.05*rf,0,TAU);ctx.stroke();
+ ctx.lineWidth=3.5;ctx.strokeStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(ra*0.25).toFixed(2)+')';
+ ctx.beginPath();ctx.arc(rx,ry,R*V.S*1.14*rf,0,TAU);ctx.stroke();}
+
+function diskRender(d,n,bx,bz,Rsh,betaz,fdSpin,rmaxStrip){
+ const col=bandCol(),br=col[0],bg=col[1],bv=col[2],steep=bandSteep();
+ const spdK=0.35+0.65*Math.min(C.spd,2)/2;
+ const rb=rot(bx,bz),cxr=rb[0],czr=rb[1];
+ ctx.globalCompositeOperation='lighter';
+ for(let i=0;i<n;i++){
+  const rl=d.r[i];let fade=1;
+  if(rmaxStrip>0&&rl>rmaxStrip){fade=1-(rl-rmaxStrip)/(0.9*Rsh+0.4);if(fade<=0.03)continue;}
+  const pl=d.p[i]-V.az,c=Math.cos(pl),s=Math.sin(pl);
+  const px0=c*rl,pz0=s*rl;
+  const lift=C.lens*V.sI*Math.max(0,s)*1.3*Rsh*Math.exp(-(c*c)/0.7);
+  if(s>0&&Math.hypot(px0,pz0*V.cI+lift)<Rsh*1.05)continue;
+  const rho=rl/Rsh;
+  const betaL=Math.min(0.65,(0.5+0.15*fdSpin)*Math.sqrt(2.3/rho))*spdK;
+  const mu=C.dop*(betaL*c+betaz)*V.sI,del=1/Math.max(0.25,1-mu);
+  let lum=d.j[i]*(6.3/Math.pow(rho,steep))*del*del*del*fade*(0.45+C.mdot);
+  if(lum>3)lum=3;
+  let R=br,G=bg,Bc=bv,tt=Math.max(-1,Math.min(1,mu*2.4));
+  if(tt>0){R+=(255-R)*tt*0.7;G+=(255-G)*tt*0.5;Bc+=(255-Bc)*tt*0.9;}
+  else{const k=-tt;G*=1-0.55*k;Bc*=1-0.8*k;}
+  const a=Math.min(1,lum);if(a<0.02)continue;
+  const sx=V.cx+(cxr+px0)*V.S,sy=V.cy-((czr+pz0)*V.cI+lift)*V.S;
+  ctx.fillStyle='rgba('+(R|0)+','+(G|0)+','+(Bc|0)+','+a.toFixed(3)+')';
+  ctx.fillRect(sx-0.9,sy-0.9,1.8,1.8);
+  ctx.fillStyle='rgba('+(R|0)+','+(G|0)+','+(Bc|0)+','+(a*0.2).toFixed(3)+')';
+  ctx.fillRect(sx-2.2,sy-2.2,4.4,4.4);}}
+
+/* utilities */
+let simT=0,paused=false;
+if(matchMedia('(prefers-reduced-motion: reduce)').matches)paused=true;
+const logEl=document.getElementById('log');
+function logEvt(msg){const li=document.createElement('li');
+ const m=Math.floor(simT/60),s2=Math.floor(simT%60);
+ li.innerHTML='<b>T+'+String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0')+'</b>'+msg;
+ logEl.prepend(li);while(logEl.children.length>7)logEl.lastChild.remove();}
+
+/* strip chart */
+const SB={buf:new Float32Array(720),i:0,max:0.05,label:'',val:''};
+function pushSig(v){SB.buf[SB.i%720]=v;SB.i++;SB.max=Math.max(Math.abs(v),SB.max*0.9985,0.05);}
+function drawStrip(){stx.fillStyle='#070a12';stx.fillRect(0,0,SW,SH);
+ stx.strokeStyle='rgba(130,160,210,0.12)';stx.lineWidth=1;
+ stx.beginPath();stx.moveTo(0,SH/2);stx.lineTo(SW,SH/2);stx.stroke();
+ stx.strokeStyle='#e8a44c';stx.lineWidth=1.4;stx.beginPath();
+ const n=Math.min(SB.i,720);
+ for(let k=0;k<n;k++){const v=SB.buf[(SB.i-n+k+720*4)%720];
+  const x=k/720*SW,y=SH/2-(v/SB.max)*(SH/2-14);
+  k===0?stx.moveTo(x,y):stx.lineTo(x,y);}
+ stx.stroke();
+ document.getElementById('striplab').textContent=SB.label;
+ document.getElementById('stripval').textContent=SB.val;}
+
+/* mini map */
+function miniBegin(ext){mtx.fillStyle='#050810';mtx.fillRect(0,0,MW,MH);
+ mtx.strokeStyle='rgba(130,160,210,0.1)';mtx.lineWidth=1;
+ mtx.beginPath();mtx.moveTo(MW/2,0);mtx.lineTo(MW/2,MH);mtx.moveTo(0,MH/2);mtx.lineTo(MW,MH/2);mtx.stroke();
+ return Math.min(MW,MH)/(2*ext);}
+function miniDot(x,z,u,r,col){mtx.fillStyle=col;mtx.beginPath();
+ mtx.arc(MW/2+x*u,MH/2+z*u,r,0,TAU);mtx.fill();}
+
+/* ============ KERR ============ */
+const K={r:new Float32Array(6000),p:new Float32Array(6000),j:new Float32Array(6000),jets:[],jp:0,fl:0,L:0.5};
+function kerrReset(){K.sh=2.6-0.25*C.spin;K.rin=Math.max(K.sh*1.08,iscoM(C.spin)/2);
+ for(let i=0;i<6000;i++){const u=Math.random();
+  K.r[i]=K.rin+(C.rout-K.rin)*Math.pow(u,1.6);K.p[i]=Math.random()*TAU;K.j[i]=0.55+Math.random()*0.9;}}
+kerrReset();
+function kerrStep(dt){
+ const n=C.num;
+ for(let i=0;i<n;i++){const r=K.r[i];K.p[i]+=dt*C.spd*(2.2/Math.pow(r,1.5))*(1+C.spin*1.3/r);}
+ K.fl+=(Math.random()-0.5)*dt*6;K.fl*=Math.pow(0.4,dt);
+ K.L=C.mdot*(1+0.35*K.fl*Math.sqrt(C.mdot))+(C.jet?C.jpow*C.spin*C.spin*0.4:0);
+ if(C.jet){K.jp+=dt*C.spd*0.5;
+  const rate=C.jpow*140*dt*C.spd;const nn=Math.floor(rate)+(Math.random()<rate%1?1:0);
+  for(let k=0;k<nn;k++)K.jets.push({s:K.sh*1.1,side:Math.random()<0.5?1:-1,
+   ox:(Math.random()-0.5)*0.5,oz:(Math.random()-0.5)*0.5,v:12+Math.random()*9,j:0.5+Math.random()*0.5});
+  for(let k=K.jets.length-1;k>=0;k--){K.jets[k].s+=K.jets[k].v*dt*C.spd;
+   if(K.jets[k].s>42)K.jets.splice(k,1);}}
+ else K.jets.length=0;
+ pushSig(K.L);SB.label='光度 L(t) · 吸積 + 噴流';SB.val='L = '+K.L.toFixed(2)+' L_Edd·ṁ';}
+function kerrDraw(){
+ drawStars();beginView();
+ if(C.jet){const tp=C.jprec*Math.PI/180,cp=Math.cos(K.jp),sp=Math.sin(K.jp);
+  const ax=Math.sin(tp)*cp,ay=Math.cos(tp),az2=Math.sin(tp)*sp;
+  ctx.globalCompositeOperation='lighter';
+  for(const jt of K.jets){
+   const s=jt.s*jt.side;
+   const px=ax*s+jt.ox*(1+jt.s*0.06),py=ay*s,pz=az2*s+jt.oz*(1+jt.s*0.06);
+   const fadeJ=Math.max(0,1-jt.s/42)*(jt.side>0?1:0.45)*jt.j;
+   const a=Math.min(0.9,fadeJ*0.8);if(a<0.02)continue;
+   const pnt=prj(px,pz,py);
+   ctx.fillStyle='rgba(170,200,255,'+a.toFixed(3)+')';
+   const sz=Math.max(1,2.2-jt.s*0.04);
+   ctx.fillRect(pnt[0]-sz/2,pnt[1]-sz/2,sz,sz);}}
+ shadow(0,0,K.sh,1,C.spin*0.35);
+ diskRender(K,C.num,0,0,K.sh,0,C.spin,0);
+ ctx.globalCompositeOperation='source-over';}
+function kerrMini(){const u=miniBegin(C.rout+2);
+ mtx.strokeStyle='rgba(232,164,76,0.5)';mtx.lineWidth=1;
+ mtx.beginPath();mtx.arc(MW/2,MH/2,K.rin*u,0,TAU);mtx.stroke();
+ mtx.strokeStyle='rgba(232,164,76,0.2)';
+ mtx.beginPath();mtx.arc(MW/2,MH/2,C.rout*u,0,TAU);mtx.stroke();
+ miniDot(0,0,u,3,'#000');mtx.strokeStyle='#e8a44c';mtx.beginPath();mtx.arc(MW/2,MH/2,3,0,TAU);mtx.stroke();
+ if(C.jet){mtx.strokeStyle='rgba(170,200,255,0.6)';mtx.beginPath();
+  const cp=Math.cos(K.jp);mtx.moveTo(MW/2-cp*8,MH/2);mtx.lineTo(MW/2+cp*8,MH/2);mtx.stroke();}}
+function kerrCards(){const M=Math.pow(10,C.logm),ic=iscoM(C.spin);
+ return[['史瓦西半徑',sci(2.953*M)+' km'],['ISCO',ic.toFixed(2)+' GM/c²'],
+ ['f(ISCO)',sci(2200*Math.pow(6/ic,1.5)/M)+' Hz'],['霍金溫度',sci(6.17e-8/M)+' K'],
+ ['蒸發時標',sci(2.14e67*M*M*M)+' 年'],['光度',sci(1.26e38*M*K.L)+' erg/s']];}
+
+/* ============ BINARY ============ */
 const B={};
-function mkDisk(R){const n=1050,d={r:new Float32Array(n),p:new Float32Array(n),j:new Float32Array(n),n:n};
-for(let i=0;i<n;i++){d.r[i]=R*(2.3+3.4*Math.pow(Math.random(),1.5));d.p[i]=Math.random()*TAU;d.j[i]=0.5+Math.random();}return d;}
-function resetBinary(){
- B.phase='inspiral';B.a=C.a0;B.th=0;B.m1=1;B.m2=C.q;B.M=1+C.q;B.R1=1;B.R2=C.q;
- B.rem=null;B.rk=null;B.flash=0;B.rd=0;B.rip=[];B.emitT=0.3;
+function mkDisk(R){const n=1000,d={r:new Float32Array(n),p:new Float32Array(n),j:new Float32Array(n),n:n};
+ for(let i=0;i<n;i++){d.r[i]=R*(2.3+3.2*Math.pow(Math.random(),1.5));d.p[i]=Math.random()*TAU;d.j[i]=0.5+Math.random();}return d;}
+function binReset(){B.phase='inspiral';B.a=C.a0;B.e=C.ecc;B.th=0;B.m1=1;B.m2=C.q;B.M=1+C.q;
+ B.R1=1;B.R2=C.q;B.rem=null;B.rk=null;B.flash=0;B.rd=0;B.rip=[];B.emitT=0.3;B.om=0;
+ B.rx=0;B.rz=0;B.kvx=0;B.kvz=0;B.trail1=[];B.trail2=[];
  B.d1=mkDisk(B.R1);B.d2=mkDisk(B.R2);
- B.cb=[];for(let i=0;i<650;i++)B.cb.push({r:C.a0*(1.15+Math.random()*0.8),p:Math.random()*TAU,j:0.4+Math.random()});
-}
-resetBinary();
-function posBH(){
- const c=Math.cos(B.th),s=Math.sin(B.th),r1=B.a*B.m2/B.M,r2=B.a*B.m1/B.M;
- return{x1:c*r1,z1:s*r1,x2:-c*r2,z2:-s*r2,r1:r1,r2:r2};
-}
-function doMerge(){
- const P=posBH();
+ B.cb=[];for(let i=0;i<600;i++)B.cb.push({r:C.a0*(1.15+Math.random()*0.8),p:Math.random()*TAU,j:0.4+Math.random()});}
+binReset();
+function binSep(){return B.a*(1-B.e*B.e)/(1+B.e*Math.cos(B.th));}
+function binPos(){const rs=binSep(),c=Math.cos(B.th),s=Math.sin(B.th);
+ const r1=rs*B.m2/B.M,r2=rs*B.m1/B.M;
+ return{x1:c*r1,z1:s*r1,x2:-c*r2,z2:-s*r2,rs:rs};}
+function binMerge(){const P=binPos();
  B.phase='ringdown';B.rd=0;B.flash=1;
  const Mr=B.M*0.95;B.rem={R:Mr,m:Mr};
+ const eta=C.q/Math.pow(1+C.q,2);
+ B.vkick=C.kick?12000*eta*eta*(1-C.q)/(1+C.q):0;
+ if(B.vkick>1){const ka=Math.random()*TAU,vv=B.vkick/150;
+  B.kvx=Math.cos(ka)*vv;B.kvz=Math.sin(ka)*vv;
+  logEvt('反衝踢速 ≈ '+Math.round(B.vkick)+' km/s,殘骸被踢離原地');}
+ logEvt('合併!輻射 5% 質量,進入鈴宕');
  const tot=B.d1.n+B.d2.n;
  B.rk={cr:new Float32Array(tot),tr:new Float32Array(tot),p:new Float32Array(tot),j:new Float32Array(tot),n:tot};
- let k=0;
- const src=[[B.d1,P.x1,P.z1],[B.d2,P.x2,P.z2]];
+ let k=0;const src=[[B.d1,P.x1,P.z1],[B.d2,P.x2,P.z2]];
  for(const[d,bx,bz]of src){for(let i=0;i<d.n;i++){
   const wx=bx+Math.cos(d.p[i])*d.r[i],wz=bz+Math.sin(d.p[i])*d.r[i];
   const rr=Math.hypot(wx,wz);
   B.rk.cr[k]=Math.max(rr,1.5*Mr);
-  B.rk.tr[k]=Math.min(Math.max(rr,2.3*Mr),7.2*Mr)+Math.random()*0.6;
+  B.rk.tr[k]=Math.min(Math.max(rr,2.3*Mr),7*Mr)+Math.random()*0.6;
   B.rk.p[k]=Math.atan2(wz,wx);B.rk.j[k]=d.j[i];k++;}}
- for(let i=0;i<3;i++)B.rip.push({r:B.R1+B.R2+i*1.6,eps:0.2,ph:B.th,amp:11-i*2});
-}
-
-/* ---------- stepping ---------- */
-let paused=false;
-if(matchMedia('(prefers-reduced-motion: reduce)').matches)paused=true;
-function stepSingle(dt){const n=C.num;for(let i=0;i<n;i++)sp[i]+=dt*C.spd*2.2/Math.pow(sr[i],1.5);}
+ for(let i=0;i<3;i++)B.rip.push({r:B.R1+B.R2+i*1.6,eps:0.2,ph:B.th,amp:11-i*2});}
 function advDisk(d,m,dt){for(let i=0;i<d.n;i++)d.p[i]+=dt*C.spd*14*Math.sqrt(m)/Math.pow(d.r[i],1.5);}
-function stepBinary(dt){
+function binStep(dt){
  for(const rp of B.rip)rp.r+=22*dt*Math.max(C.spd,0.2);
  B.rip=B.rip.filter(rp=>rp.amp/(rp.r*0.35+1)>0.006);
  for(const p of B.cb)p.p+=dt*C.spd*6*Math.sqrt(B.M)/Math.pow(p.r,1.5);
  if(B.flash>0)B.flash-=dt*1.1;
  if(B.phase==='inspiral'){
-  const om=25*Math.sqrt(B.M/Math.pow(B.a,3))*C.spd;
-  B.th+=om*dt;B.om=om;
+  const om0=25*Math.sqrt(B.M/Math.pow(B.a,3))*C.spd;
+  const fac=Math.pow(1+B.e*Math.cos(B.th),2)/Math.pow(1-B.e*B.e,1.5);
+  B.om=om0*fac;B.th+=B.om*dt;
   B.a-=C.rate*480*(B.m1*B.m2*B.M)/Math.pow(B.a,3)*dt*C.spd;
+  B.e=Math.max(0,B.e-C.rate*300*B.e/Math.pow(B.a,4)*dt*C.spd);
   advDisk(B.d1,B.m1,dt);advDisk(B.d2,B.m2,dt);
   B.emitT-=dt*C.spd;
   if(B.emitT<=0&&C.ripples){
    B.rip.push({r:B.a*0.6,eps:0.16,ph:B.th,amp:(B.m1*B.m2/(B.a*B.a))*140});
    B.emitT=Math.max(0.12,0.55*Math.pow(B.a/C.a0,1.2));}
-  if(B.a<=(B.R1+B.R2)*1.15)doMerge();
+  const P=binPos();
+  B.trail1.push([P.x1,P.z1]);B.trail2.push([P.x2,P.z2]);
+  if(B.trail1.length>160){B.trail1.shift();B.trail2.shift();}
+  if(P.rs<=(B.R1+B.R2)*1.15)binMerge();
+  pushSig(1.4*B.m1*B.m2/binSep()*Math.cos(2*B.th));
+  SB.label='重力波應變 h(t) · 頻率隨旋近掃升';
+  SB.val='f_GW = '+(2*B.om/TAU).toFixed(2)+' Hz';
  }else{
   B.rd+=dt;
-  if(B.phase==='ringdown'&&B.rd>4)B.phase='remnant';
-  const d=B.rk,Mr=B.rem.m,e=Math.min(1,dt*0.8);
-  for(let i=0;i<d.n;i++){
-   d.cr[i]+=(d.tr[i]-d.cr[i])*e;
+  if(B.phase==='ringdown'&&B.rd>4){B.phase='remnant';logEvt('鈴宕結束,殘骸穩定');}
+  B.rx+=B.kvx*dt*C.spd;B.rz+=B.kvz*dt*C.spd;
+  const d=B.rk,Mr=B.rem.m,e2=Math.min(1,dt*0.8);
+  for(let i=0;i<d.n;i++){d.cr[i]+=(d.tr[i]-d.cr[i])*e2;
    d.p[i]+=dt*C.spd*14*Math.sqrt(Mr)/Math.pow(d.cr[i],1.5);}
- }
-}
-
-/* ---------- rendering ---------- */
-function drawStars(){ctx.globalCompositeOperation='source-over';ctx.fillStyle='#020308';ctx.fillRect(0,0,W,H);
-ctx.fillStyle='rgba(255,255,255,0.85)';
-for(const st of stars){ctx.globalAlpha=st[3];ctx.fillRect(st[0]*W,st[1]*H,st[2],st[2]);}ctx.globalAlpha=1;}
-
-function drawSingle(){
- drawStars();
- const cx=W/2,cy=H/2,S=Math.min(W,H)*0.1;
- const inc=C.inc*Math.PI/180,sI=Math.sin(inc),cI=Math.cos(inc);
- const col=bb(C.tmp),br=col[0],bg=col[1],bv=col[2];
- ctx.globalCompositeOperation='lighter';
- ctx.lineWidth=1.6;ctx.strokeStyle='rgba('+(br|0)+','+(bg|0)+','+(bv|0)+',0.45)';
- ctx.beginPath();ctx.arc(cx,cy,S*1.02,0,TAU);ctx.stroke();
- ctx.lineWidth=4;ctx.strokeStyle='rgba('+(br|0)+','+(bg|0)+','+(bv|0)+',0.1)';
- ctx.beginPath();ctx.arc(cx,cy,S*1.1,0,TAU);ctx.stroke();
- const spdK=0.35+0.65*Math.min(C.spd,2)/2,n=C.num;
- for(let i=0;i<n;i++){
-  const r=sr[i],ph=sp[i],c=Math.cos(ph),s=Math.sin(ph);
-  const x=c*r,g=Math.exp(-(x*x)/(r*r*0.72));
-  const lift=C.lens*sI*Math.max(0,s)*1.55*g;
-  const yU=s*r*cI+lift,dd=Math.sqrt(x*x+yU*yU);
-  if(s>0&&dd<1.04)continue;
-  const beta=Math.min(0.68,0.55*Math.sqrt(2.6/r))*spdK;
-  const mu=C.dop*beta*c*sI,del=1/Math.max(0.25,1-mu);
-  let lum=sj[i]*(6.5/(r*r))*del*del*del;if(lum>3)lum=3;
-  let R=br,G=bg,Bc=bv,tt=Math.max(-1,Math.min(1,mu*2.4));
-  if(tt>0){R+=(255-R)*tt*0.7;G+=(255-G)*tt*0.5;Bc+=(255-Bc)*tt*0.9;}
-  else{const k=-tt;G*=1-0.55*k;Bc*=1-0.8*k;}
-  const a=Math.min(1,lum);if(a<0.02)continue;
-  const sx=cx+x*S,sy=cy-yU*S;
-  ctx.fillStyle='rgba('+(R|0)+','+(G|0)+','+(Bc|0)+','+a.toFixed(3)+')';
-  ctx.fillRect(sx-0.9,sy-0.9,1.8,1.8);
-  ctx.fillStyle='rgba('+(R|0)+','+(G|0)+','+(Bc|0)+','+(a*0.22).toFixed(3)+')';
-  ctx.fillRect(sx-2.3,sy-2.3,4.6,4.6);
-  if(s>0&&g>0.15&&sI>0.3&&C.lens>0.05){
-   const y2=-(1.07+0.22*lift),d2=Math.sqrt(x*x*g*g+y2*y2);
-   if(d2>1.04){ctx.fillStyle='rgba('+(R|0)+','+(G|0)+','+(Bc|0)+','+(a*0.28).toFixed(3)+')';
-   ctx.fillRect(cx+x*g*S-0.8,cy-y2*S-0.8,1.6,1.6);}}}
- ctx.globalCompositeOperation='source-over';
-}
-
-function proj(px,pz,lift,cx,cy,U,cI){return[cx+px*U,cy-(pz*cI+lift)*U];}
-
-function drawGrid(masses,cx,cy,U,cI){
- const E=C.a0*1.4,N=24,st=2*E/N;
+  pushSig(B.rd<3?0.6*Math.exp(-B.rd*2.2)*Math.cos(B.rd*22):0);
+  SB.label='重力波應變 h(t) · 鈴宕衰減';SB.val='';}}
+function drawGridB(masses){
+ const E=C.a0*1.4,N=22,stp=2*E/N;
  ctx.globalCompositeOperation='source-over';
  ctx.strokeStyle='rgba(96,140,220,0.13)';ctx.lineWidth=1;
  function disp(px,pz){let dx=0,dz=0;
-  for(const b of masses){const ax=b.x-px,az=b.z-pz;const d=Math.hypot(ax,az)+0.001;
-   const f=b.m*2.4/((d+1.2)*(d+1.2))*Math.min(d,2);dx+=ax/d*f;dz+=az/d*f;}
+  for(const b of masses){const ax=b.x-px,az2=b.z-pz;const d=Math.hypot(ax,az2)+0.001;
+   const f=b.m*2.4/((d+1.2)*(d+1.2))*Math.min(d,2);dx+=ax/d*f;dz+=az2/d*f;}
   return[px+dx,pz+dz];}
  for(let i=0;i<=N;i++){ctx.beginPath();
-  for(let j=0;j<=N;j++){const[wx,wz]=disp(-E+j*st,-E+i*st);const[sx,sy]=proj(wx,wz,0,cx,cy,U,cI);
-   j===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);}ctx.stroke();}
- for(let j=0;j<=N;j++){ctx.beginPath();
-  for(let i=0;i<=N;i++){const[wx,wz]=disp(-E+j*st,-E+i*st);const[sx,sy]=proj(wx,wz,0,cx,cy,U,cI);
-   i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);}ctx.stroke();}
-}
-
-function drawRipples(cx,cy,U,cI){
+  for(let j2=0;j2<=N;j2++){const w=disp(-E+j2*stp,-E+i*stp);const p=prj(w[0],w[1],0);
+   j2===0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]);}ctx.stroke();}
+ for(let j2=0;j2<=N;j2++){ctx.beginPath();
+  for(let i=0;i<=N;i++){const w=disp(-E+j2*stp,-E+i*stp);const p=prj(w[0],w[1],0);
+   i===0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]);}ctx.stroke();}}
+function binDraw(){
+ drawStars();beginView();
+ const merged=B.phase!=='inspiral';
+ const P=binPos();
+ const masses=merged?[{x:B.rx,z:B.rz,m:B.rem.m}]:[{x:P.x1,z:P.z1,m:B.m1},{x:P.x2,z:P.z2,m:B.m2}];
+ if(C.grid)drawGridB(masses);
  ctx.globalCompositeOperation='lighter';ctx.lineWidth=1.2;
- for(const rp of B.rip){
-  const al=Math.min(0.5,rp.amp/(rp.r*0.35+1));if(al<0.006)continue;
-  ctx.strokeStyle='rgba(150,180,255,'+al.toFixed(3)+')';
-  ctx.beginPath();
+ for(const rp of B.rip){const al=Math.min(0.5,rp.amp/(rp.r*0.35+1));if(al<0.006)continue;
+  ctx.strokeStyle='rgba(150,180,255,'+al.toFixed(3)+')';ctx.beginPath();
   for(let k=0;k<=64;k++){const t=k/64*TAU;
    const R=rp.r*(1+rp.eps*Math.cos(2*t-2*rp.ph));
-   const[sx,sy]=proj(Math.cos(t)*R,Math.sin(t)*R,0,cx,cy,U,cI);
-   k===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);}
+   const p=prj(Math.cos(t)*R,Math.sin(t)*R,0);
+   k===0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]);}
   ctx.closePath();ctx.stroke();}
-}
-
-function drawShadow(bx,bz,R,rf,cx,cy,U,cI,col){
- const[sx,sy]=proj(bx,bz,0,cx,cy,U,cI);
- ctx.globalCompositeOperation='source-over';
- ctx.fillStyle='#000';ctx.beginPath();ctx.arc(sx,sy,R*U,0,TAU);ctx.fill();
- ctx.globalCompositeOperation='lighter';
- ctx.lineWidth=1.4;ctx.strokeStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+',0.45)';
- ctx.beginPath();ctx.arc(sx,sy,R*U*1.04*rf,0,TAU);ctx.stroke();
- ctx.lineWidth=3.5;ctx.strokeStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+',0.1)';
- ctx.beginPath();ctx.arc(sx,sy,R*U*1.12*rf,0,TAU);ctx.stroke();
-}
-
-function drawDisk(d,bx,bz,R,m,betaz,rmax,cx,cy,U,cI,sI,col,spdK){
- ctx.globalCompositeOperation='lighter';
- const br=col[0],bg=col[1],bv=col[2];
- for(let i=0;i<d.n;i++){
-  const rl=d.r[i];
-  let fade=1;
-  if(rmax>0&&rl>rmax){fade=1-(rl-rmax)/(0.9*R+0.4);if(fade<=0.03)continue;}
-  const pl=d.p[i],c=Math.cos(pl),s=Math.sin(pl);
-  const px=bx+c*rl,pz=bz+s*rl;
-  const g=Math.exp(-(c*c)/0.7);
-  const lift=C.lens*sI*Math.max(0,s)*1.3*R*g;
-  const zrel=s*rl;
-  if(zrel>0&&Math.hypot(c*rl,zrel*cI+lift)<R*1.05)continue;
-  const rho=rl/R;
-  const betaL=Math.min(0.65,0.5*Math.sqrt(2.3/rho))*spdK;
-  const mu=C.dop*(betaL*c+betaz)*sI,del=1/Math.max(0.25,1-mu);
-  let lum=d.j[i]*(6.3/(rho*rho))*del*del*del*fade;if(lum>3)lum=3;
-  let Rr=br,G=bg,Bc=bv,tt=Math.max(-1,Math.min(1,mu*2.4));
-  if(tt>0){Rr+=(255-Rr)*tt*0.7;G+=(255-G)*tt*0.5;Bc+=(255-Bc)*tt*0.9;}
-  else{const k=-tt;G*=1-0.55*k;Bc*=1-0.8*k;}
-  const a=Math.min(1,lum);if(a<0.02)continue;
-  const[sx,sy]=proj(px,pz,lift,cx,cy,U,cI);
-  ctx.fillStyle='rgba('+(Rr|0)+','+(G|0)+','+(Bc|0)+','+a.toFixed(3)+')';
-  ctx.fillRect(sx-0.9,sy-0.9,1.8,1.8);
-  ctx.fillStyle='rgba('+(Rr|0)+','+(G|0)+','+(Bc|0)+','+(a*0.2).toFixed(3)+')';
-  ctx.fillRect(sx-2.2,sy-2.2,4.4,4.4);}
-}
-
-function drawBinary(){
- drawStars();
- const cx=W/2,cy=H/2,U=Math.min(W,H)*0.8/(C.a0+12);
- const inc=C.inc*Math.PI/180,sI=Math.sin(inc),cI=Math.cos(inc);
- const col=bb(C.tmp),colDim=[col[0]*0.7,col[1]*0.7,col[2]*0.85];
- const spdK=0.35+0.65*Math.min(C.spd,2)/2;
- const merged=B.phase!=='inspiral';
- const P=posBH();
- const masses=merged?[{x:0,z:0,m:B.rem.m}]:[{x:P.x1,z:P.z1,m:B.m1},{x:P.x2,z:P.z2,m:B.m2}];
- if(C.grid)drawGrid(masses,cx,cy,U,cI);
- drawRipples(cx,cy,U,cI);
- ctx.globalCompositeOperation='lighter';
- for(const p of B.cb){
-  const c=Math.cos(p.p),s=Math.sin(p.p);
-  const mu=C.dop*0.18*c*sI;
-  let Rr=colDim[0],G=colDim[1],Bc=colDim[2];
-  if(mu>0){Rr+=(255-Rr)*mu;Bc+=(255-Bc)*mu*1.4;}else{G*=1+mu*0.8;Bc*=1+mu;}
-  const a=p.j*0.22*(1+mu*2);if(a<0.01)continue;
-  const[sx,sy]=proj(c*p.r,s*p.r,0,cx,cy,U,cI);
-  ctx.fillStyle='rgba('+(Rr|0)+','+(G|0)+','+(Bc|0)+','+Math.min(0.6,a).toFixed(3)+')';
-  ctx.fillRect(sx-0.8,sy-0.8,1.6,1.6);}
+ const colD=bandCol();
+ for(const p of B.cb){const c=Math.cos(p.p-V.az),s=Math.sin(p.p-V.az);
+  const a=p.j*0.2;const pt=prj(Math.cos(p.p)*p.r,Math.sin(p.p)*p.r,0);
+  ctx.fillStyle='rgba('+(colD[0]*0.7|0)+','+(colD[1]*0.7|0)+','+(colD[2]*0.85|0)+','+a.toFixed(3)+')';
+  ctx.fillRect(pt[0]-0.8,pt[1]-0.8,1.6,1.6);}
  if(!merged){
-  const vfac=0.9*Math.sqrt(B.M/B.a),ct=Math.cos(B.th);
+  const vfac=0.9*Math.sqrt(B.M/binSep()),ct=Math.cos(B.th-V.az);
   const b1={d:B.d1,x:P.x1,z:P.z1,R:B.R1,m:B.m1,bz:Math.min(0.45,vfac*B.m2/B.M)*ct};
   const b2={d:B.d2,x:P.x2,z:P.z2,R:B.R2,m:B.m2,bz:-Math.min(0.45,vfac*B.m1/B.M)*ct};
-  const rmax=0.45*B.a;
-  const order=b1.z>b2.z?[b1,b2]:[b2,b1];
-  for(const b of order){
-   drawShadow(b.x,b.z,b.R,1,cx,cy,U,cI,col);
-   drawDisk(b.d,b.x,b.z,b.R,b.m,b.bz,rmax,cx,cy,U,cI,sI,col,spdK);}
+  const rmax=0.45*binSep();
+  const z1r=rot(P.x1,P.z1)[1],z2r=rot(P.x2,P.z2)[1];
+  const order=z1r>z2r?[b1,b2]:[b2,b1];
+  for(const b of order){shadow(b.x,b.z,b.R,1,0);
+   diskRender(b.d,b.d.n,b.x,b.z,b.R,b.bz,0,rmax);}
  }else{
   const rf=1+0.16*Math.exp(-B.rd*1.4)*Math.cos(B.rd*10);
-  drawShadow(0,0,B.rem.R,rf,cx,cy,U,cI,col);
-  const d=B.rk;
-  ctx.globalCompositeOperation='lighter';
-  for(let i=0;i<d.n;i++){
-   const rl=d.cr[i],pl=d.p[i],c=Math.cos(pl),s=Math.sin(pl);
-   const g=Math.exp(-(c*c)/0.7);
-   const lift=C.lens*sI*Math.max(0,s)*1.3*B.rem.R*g;
-   if(s>0&&Math.hypot(c*rl,s*rl*cI+lift)<B.rem.R*1.05)continue;
-   const rho=rl/B.rem.R;
-   const betaL=Math.min(0.65,0.5*Math.sqrt(2.3/rho))*spdK;
-   const mu=C.dop*betaL*c*sI,del=1/Math.max(0.25,1-mu);
-   let lum=d.j[i]*(6.3/(rho*rho))*del*del*del;if(lum>3)lum=3;
-   let Rr=col[0],G=col[1],Bc=col[2],tt=Math.max(-1,Math.min(1,mu*2.4));
-   if(tt>0){Rr+=(255-Rr)*tt*0.7;G+=(255-G)*tt*0.5;Bc+=(255-Bc)*tt*0.9;}
-   else{const k=-tt;G*=1-0.55*k;Bc*=1-0.8*k;}
-   const a=Math.min(1,lum);if(a<0.02)continue;
-   const[sx,sy]=proj(c*rl,s*rl,lift,cx,cy,U,cI);
-   ctx.fillStyle='rgba('+(Rr|0)+','+(G|0)+','+(Bc|0)+','+a.toFixed(3)+')';
-   ctx.fillRect(sx-0.9,sy-0.9,1.8,1.8);
-   ctx.fillStyle='rgba('+(Rr|0)+','+(G|0)+','+(Bc|0)+','+(a*0.2).toFixed(3)+')';
-   ctx.fillRect(sx-2.2,sy-2.2,4.4,4.4);}
-  if(B.flash>0){
-   const fr=(1-B.flash)*C.a0*0.9*U+B.rem.R*U;
+  shadow(B.rx,B.rz,B.rem.R,rf,0);
+  const d2={r:B.rk.cr,p:B.rk.p,j:B.rk.j};
+  diskRender(d2,B.rk.n,B.rx,B.rz,B.rem.R,0,0,0);
+  if(B.flash>0){ctx.globalCompositeOperation='lighter';
+   const fr=(1-B.flash)*C.a0*0.9*V.S+B.rem.R*V.S;
+   const pc=prj(B.rx,B.rz,0);
    ctx.fillStyle='rgba(255,235,205,'+(B.flash*0.45).toFixed(3)+')';
-   ctx.beginPath();ctx.arc(cx,cy,fr,0,TAU);ctx.fill();}
- }
+   ctx.beginPath();ctx.arc(pc[0],pc[1],fr,0,TAU);ctx.fill();}}
+ ctx.globalCompositeOperation='source-over';}
+function binMini(){const u=miniBegin(C.a0+3);
+ mtx.strokeStyle='rgba(150,180,255,0.35)';mtx.lineWidth=1;
+ for(const tr of[B.trail1,B.trail2]){mtx.beginPath();
+  for(let i=0;i<tr.length;i++)i===0?mtx.moveTo(MW/2+tr[i][0]*u,MH/2+tr[i][1]*u):mtx.lineTo(MW/2+tr[i][0]*u,MH/2+tr[i][1]*u);
+  mtx.stroke();}
+ if(B.phase==='inspiral'){const P=binPos();
+  miniDot(P.x1,P.z1,u,Math.max(2,B.R1*u),'#e8a44c');
+  miniDot(P.x2,P.z2,u,Math.max(2,B.R2*u),'#d88a4c');}
+ else miniDot(B.rx,B.rz,u,Math.max(3,B.rem.R*u),'#e8a44c');}
+function binCards(){const M=Math.pow(10,C.logm);
+ const mc=Math.pow(B.m1*B.m2,0.6)/Math.pow(B.M,0.2);
+ if(B.phase==='inspiral')return[['間距',binSep().toFixed(2)+' R_s'],['偏心率 e',B.e.toFixed(3)],
+  ['啁啾質量',sci(mc*M)+' M☉'],['f_GW',(2*B.om/TAU).toFixed(2)+' Hz'],
+  ['q',C.q.toFixed(2)],['相位','旋近']];
+ return[['殘骸質量',sci(B.rem.m/B.M*100)+' %'],['輻射質量','5.0 %'],
+  ['反衝踢速',Math.round(B.vkick||0)+' km/s'],['相位',B.phase==='ringdown'?'鈴宕':'穩定']];}
+
+/* ============ TDE ============ */
+const T={GM:6,rt:5};
+function tdeReset(){T.phase='approach';T.deb=null;T.trail=[];T.L=0.02;T.acc=0;T.tot=1;
+ T.disk={r:new Float32Array(2200),p:new Float32Array(2200),j:new Float32Array(2200),n:0};
+ const x0=26,z0=-13,r0=Math.hypot(x0,z0);
+ const L2=Math.sqrt(2*T.GM*C.rp),vt=L2/r0,vr=-Math.sqrt(Math.max(0.001,2*T.GM/r0-vt*vt));
+ const ux=x0/r0,uz=z0/r0;
+ T.star={x:x0,z:z0,vx:vr*ux-vt*uz,vz:vr*uz+vt*ux,alive:true};
+ logEvt('恆星以近心距 '+C.rp.toFixed(1)+' R_s 投放');}
+tdeReset();
+function grav(p,dt){const r=Math.hypot(p.x,p.z)+0.2;
+ const a=-T.GM/(r*r*r);p.vx+=a*p.x*dt;p.vz+=a*p.z*dt;p.x+=p.vx*dt;p.z+=p.vz*dt;}
+function tdeStep(dt){const sdt=dt*C.spd;
+ if(T.phase==='approach'&&T.star.alive){
+  grav(T.star,sdt);T.trail.push([T.star.x,T.star.z]);if(T.trail.length>200)T.trail.shift();
+  const r=Math.hypot(T.star.x,T.star.z);
+  if(r<T.rt){T.phase='stream';T.star.alive=false;
+   logEvt('穿越潮汐半徑 — 恆星被撕裂!');
+   const nd=Math.round(700+C.mstar*700);T.tot=nd;T.deb=[];
+   for(let i=0;i<nd;i++){const dv=1+(Math.random()-0.5)*0.13;
+    T.deb.push({x:T.star.x+(Math.random()-0.5)*0.5,z:T.star.z+(Math.random()-0.5)*0.5,
+     vx:T.star.vx*dv+(Math.random()-0.5)*0.12,vz:T.star.vz*dv+(Math.random()-0.5)*0.12});}}}
+ if(T.deb){let cap=0;
+  for(let i=T.deb.length-1;i>=0;i--){const p=T.deb[i];grav(p,sdt);
+   const r=Math.hypot(p.x,p.z);
+   if(r<C.rp*1.4&&Math.random()<sdt*1.6){
+    const k=T.disk.n%2200;
+    T.disk.r[k]=C.rp*(1.6+Math.random()*1.6);T.disk.p[k]=Math.atan2(p.z,p.x);
+    T.disk.j[k]=0.5+Math.random();if(T.disk.n<2200)T.disk.n++;
+    T.deb.splice(i,1);cap++;}
+   else if(r>60)T.deb.splice(i,1);}
+  T.acc+=cap;
+  if(cap>0&&T.phase==='stream'&&T.acc>T.tot*0.05){T.phase='flare';logEvt('碎屑流回歸 — 吸積耀發開始');}
+  T.L+=(cap/Math.max(sdt,1e-4)*0.06-T.L*0.5)*Math.min(1,sdt*2);
+  T.L=Math.max(T.L*(1-0.1*sdt),0.015);}
+ for(let i=0;i<T.disk.n;i++)T.disk.p[i]+=sdt*14/Math.pow(T.disk.r[i],1.5);
+ pushSig(T.L);SB.label='光變曲線 L(t) · 耀發後 ∝ t^(-5/3) 衰減';
+ SB.val='已吸積 '+Math.round(T.acc/T.tot*100)+' %';}
+function tdeDraw(){
+ drawStars();beginView();
+ shadow(0,0,2.6,1,0);
+ if(T.disk.n>0)diskRender(T.disk,T.disk.n,0,0,2.6,0,0,0);
+ ctx.globalCompositeOperation='lighter';
+ if(T.deb){ctx.fillStyle='rgba(255,225,190,0.55)';
+  for(const p of T.deb){const pt=prj(p.x,p.z,0);ctx.fillRect(pt[0]-0.8,pt[1]-0.8,1.6,1.6);}}
+ if(T.star.alive){
+  ctx.strokeStyle='rgba(255,235,200,0.25)';ctx.lineWidth=1;ctx.beginPath();
+  for(let i=0;i<T.trail.length;i++){const p=prj(T.trail[i][0],T.trail[i][1],0);
+   i===0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]);}
+  ctx.stroke();
+  const p=prj(T.star.x,T.star.z,0);
+  ctx.fillStyle='rgba(255,245,225,0.95)';ctx.beginPath();ctx.arc(p[0],p[1],2.6,0,TAU);ctx.fill();
+  ctx.fillStyle='rgba(255,235,190,0.25)';ctx.beginPath();ctx.arc(p[0],p[1],7,0,TAU);ctx.fill();}
+ ctx.globalCompositeOperation='source-over';}
+function tdeMini(){const u=miniBegin(30);
+ mtx.strokeStyle='rgba(232,120,90,0.5)';mtx.beginPath();mtx.arc(MW/2,MH/2,T.rt*u,0,TAU);mtx.stroke();
+ mtx.strokeStyle='rgba(150,180,255,0.35)';mtx.beginPath();
+ for(let i=0;i<T.trail.length;i++)i===0?mtx.moveTo(MW/2+T.trail[i][0]*u,MH/2+T.trail[i][1]*u):mtx.lineTo(MW/2+T.trail[i][0]*u,MH/2+T.trail[i][1]*u);
+ mtx.stroke();
+ if(T.deb){mtx.fillStyle='rgba(255,225,190,0.5)';
+  for(const p of T.deb)mtx.fillRect(MW/2+p.x*u-0.5,MH/2+p.z*u-0.5,1,1);}
+ if(T.star.alive)miniDot(T.star.x,T.star.z,u,2,'#fff5e1');
+ miniDot(0,0,u,2.5,'#e8a44c');}
+function tdeCards(){return[['潮汐半徑',T.rt.toFixed(1)+' R_s'],['穿透因子 β',(T.rt/C.rp).toFixed(2)],
+ ['恆星質量',C.mstar.toFixed(1)+' M☉'],['已吸積',Math.round(T.acc/T.tot*100)+' %'],
+ ['光度',T.L.toFixed(2)],['相位',T.phase==='approach'?'接近':T.phase==='stream'?'碎屑流':'耀發']];}
+
+/* ============ LENS ============ */
+const Lz={stars:[],x:0,z:0,drag:false};
+function lensReset(){Lz.stars=[];const n=C.dens;
+ for(let i=0;i<n;i++)Lz.stars.push({x:(Math.random()-0.5),y:(Math.random()-0.5),
+  s:Math.random()*1.3+0.5,a:Math.random()*0.55+0.2});
+ Lz.x=-0.45;Lz.z=(Math.random()-0.5)*0.2;Lz.umin=99;}
+lensReset();
+function lensStep(dt){if(!Lz.drag){Lz.x+=C.lvel*0.045*dt*C.spd;
+ if(Lz.x>0.55){Lz.x=-0.55;Lz.z=(Math.random()-0.5)*0.25;Lz.umin=99;logEvt('透鏡體重新進入星場');}}
+ let mag=1;const tE=C.thE*0.028;
+ for(const s2 of Lz.stars){const dx=s2.x-Lz.x,dy=s2.y-Lz.z;
+  const u=Math.hypot(dx,dy)/tE;
+  if(u<3){const A=(u*u+2)/(2*u*Math.sqrt(u*u+4)+1e-6);mag+=Math.max(0,A-1);
+   if(u<Lz.umin)Lz.umin=u;}}
+ Lz.mag=mag;
+ pushSig(Math.min(mag,8));SB.label='微透鏡放大率曲線 A(t)';
+ SB.val='A = '+mag.toFixed(2)+'  u_min = '+(Lz.umin<90?Lz.umin.toFixed(2):'—');}
+function lensDraw(){
  ctx.globalCompositeOperation='source-over';
-}
+ ctx.fillStyle='#010208';ctx.fillRect(0,0,W,H);
+ const sc=Math.min(W,H)*C.zoom,ox=W/2,oy=H/2;
+ const lx=ox+Lz.x*sc,ly=oy+Lz.z*sc,tE=C.thE*0.028*sc;
+ ctx.globalCompositeOperation='lighter';
+ for(const s2 of Lz.stars){
+  const px=ox+s2.x*sc,py=oy+s2.y*sc;
+  const dx=px-lx,dy=py-ly,d=Math.hypot(dx,dy),u=d/tE;
+  if(u>6){ctx.fillStyle='rgba(255,255,255,'+s2.a.toFixed(2)+')';
+   ctx.fillRect(px-s2.s/2,py-s2.s/2,s2.s,s2.s);continue;}
+  const ux=dx/(d+1e-6),uy=dy/(d+1e-6);
+  const rt2=Math.sqrt(u*u+4);
+  const t1=(u+rt2)/2*tE,t2=(u-rt2)/2*tE;
+  const A1=Math.min(6,(u*u+2)/(2*u*rt2+1e-6)+0.5),A2=Math.max(0,Math.min(4,(u*u+2)/(2*u*rt2+1e-6)-0.5));
+  ctx.fillStyle='rgba(255,255,255,'+Math.min(1,s2.a*A1).toFixed(2)+')';
+  const z1=s2.s*Math.sqrt(A1);
+  ctx.fillRect(lx+ux*t1-z1/2,ly+uy*t1-z1/2,z1,z1);
+  if(A2>0.05){ctx.fillStyle='rgba(200,220,255,'+Math.min(1,s2.a*A2).toFixed(2)+')';
+   const z2=s2.s*Math.sqrt(A2)*0.9;
+   ctx.fillRect(lx+ux*t2-z2/2,ly+uy*t2-z2/2,z2,z2);}}
+ if(C.ering){ctx.strokeStyle='rgba(150,180,255,0.22)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(lx,ly,tE,0,TAU);ctx.stroke();}
+ ctx.globalCompositeOperation='source-over';
+ ctx.fillStyle='#000';ctx.beginPath();ctx.arc(lx,ly,tE*0.18,0,TAU);ctx.fill();
+ ctx.globalCompositeOperation='lighter';
+ ctx.strokeStyle='rgba(232,164,76,0.5)';ctx.lineWidth=1.2;
+ ctx.beginPath();ctx.arc(lx,ly,tE*0.2,0,TAU);ctx.stroke();
+ ctx.globalCompositeOperation='source-over';}
+function lensMini(){const u=miniBegin(0.6);
+ mtx.fillStyle='rgba(255,255,255,0.4)';
+ for(let i=0;i<Lz.stars.length;i+=4){const s2=Lz.stars[i];
+  mtx.fillRect(MW/2+s2.x*u-0.5,MH/2+s2.y*u-0.5,1,1);}
+ mtx.strokeStyle='rgba(150,180,255,0.5)';mtx.lineWidth=1;
+ mtx.beginPath();mtx.moveTo(0,MH/2+Lz.z*u);mtx.lineTo(MW,MH/2+Lz.z*u);mtx.stroke();
+ miniDot(Lz.x,Lz.z,u,3,'#e8a44c');}
+function lensCards(){const M=Math.pow(10,C.logm);
+ return[['θ_E(視覺)',C.thE.toFixed(1)+' u'],['放大率 A',(Lz.mag||1).toFixed(2)],
+ ['u_min',Lz.umin<90?Lz.umin.toFixed(2):'—'],['背景星數',String(C.dens)],
+ ['透鏡質量',sci(M)+' M☉'],['模式','點透鏡']];}
 
-/* ---------- stats ---------- */
-const statsEl=document.getElementById('stats');
-let statT=0;
-function updStats(dt){
- statT-=dt;if(statT>0)return;statT=0.15;
- if(C.mode==='single'){
-  statsEl.innerHTML='模式      單一黑洞\n盤內緣    2.6 <b>R\u209B</b>\n傾角      '+Math.round(C.inc)+'\u00B0';
- }else if(B.phase==='inspiral'){
-  statsEl.innerHTML='相位      <b>旋近</b>\n間距      '+B.a.toFixed(2)+' R\u209B\n軌道頻率  '+((B.om||0)/TAU).toFixed(2)+' Hz\n重力波    2f = '+(2*(B.om||0)/TAU).toFixed(2)+' Hz';
- }else{
-  statsEl.innerHTML='相位      <b>'+(B.phase==='ringdown'?'鈴宕':'穩定殘骸')+'</b>\n殘骸質量  '+(B.rem.m).toFixed(2)+' M\u2081\n輻射質量  5.0 %';
- }
-}
+/* ============ EVAP ============ */
+const E={parts:[],t:0};
+function evapReset(){E.M=C.em0;E.done=false;E.parts=[];E.burst=0;E.t=0;
+ logEvt('生成微型黑洞 M₀ = '+C.em0.toFixed(1));}
+evapReset();
+function evapStep(dt){const sdt=dt*C.spd;
+ if(!E.done){
+  E.M-=C.erate*0.02/(E.M*E.M)*sdt;
+  const rate=C.erate*30/(E.M*E.M)*sdt;
+  const nn=Math.floor(rate)+(Math.random()<rate%1?1:0);
+  for(let k=0;k<nn&&E.parts.length<2600;k++){const a=Math.random()*TAU;
+   E.parts.push({x:Math.cos(a)*E.M,z:Math.sin(a)*E.M,vx:Math.cos(a)*(5+Math.random()*7),
+    vz:Math.sin(a)*(5+Math.random()*7),l:1});}
+  if(E.M<0.14){E.done=true;E.burst=1;
+   logEvt('黑洞蒸發殆盡 — 終端爆發!');
+   for(let k=0;k<420;k++){const a=Math.random()*TAU,v=8+Math.random()*16;
+    E.parts.push({x:0,z:0,vx:Math.cos(a)*v,vz:Math.sin(a)*v,l:1});}}}
+ else{E.t+=dt;E.burst=Math.max(0,E.burst-dt*0.7);
+  if(E.t>4.5)evapReset();}
+ for(let i=E.parts.length-1;i>=0;i--){const p=E.parts[i];
+  p.x+=p.vx*sdt;p.z+=p.vz*sdt;p.l-=sdt*0.35;
+  if(p.l<=0||Math.hypot(p.x,p.z)>40)E.parts.splice(i,1);}
+ const L=E.done?E.burst*6:Math.min(6,0.1*Math.pow(C.em0/E.M,4));
+ pushSig(L);SB.label='光度 L(t) ∝ 1/M⁴ · 終端伽瑪爆發';
+ SB.val='M = '+Math.max(0,E.M).toFixed(2)+' M₀單位';}
+function evapDraw(){
+ drawStars();beginView();
+ ctx.globalCompositeOperation='lighter';
+ for(const p of E.parts){const pt=prj(p.x,p.z,0);
+  const a=Math.min(0.85,p.l*0.8);
+  ctx.fillStyle='rgba(215,200,255,'+a.toFixed(2)+')';
+  ctx.fillRect(pt[0]-0.9,pt[1]-0.9,1.8,1.8);}
+ if(!E.done){
+  const halo=Math.min(0.5,0.05*Math.pow(C.em0/E.M,1.6));
+  const pc=prj(0,0,0);
+  ctx.fillStyle='rgba(200,185,255,'+halo.toFixed(3)+')';
+  ctx.beginPath();ctx.arc(pc[0],pc[1],E.M*V.S*3.2,0,TAU);ctx.fill();
+  shadow(0,0,Math.max(0.15,E.M),1,0);}
+ else if(E.burst>0){const pc=prj(0,0,0);
+  ctx.fillStyle='rgba(255,250,235,'+(E.burst*0.6).toFixed(2)+')';
+  ctx.beginPath();ctx.arc(pc[0],pc[1],(1-E.burst)*22*V.S+4,0,TAU);ctx.fill();}
+ ctx.globalCompositeOperation='source-over';}
+function evapMini(){const u=miniBegin(20);
+ if(!E.done)miniDot(0,0,u,Math.max(1.5,E.M*u),'#c8b9ff');
+ mtx.fillStyle='rgba(215,200,255,0.5)';
+ for(const p of E.parts)mtx.fillRect(MW/2+p.x*u-0.5,MH/2+p.z*u-0.5,1,1);}
+function evapCards(){const frac=Math.max(0,E.M/C.em0);
+ return[['質量剩餘',Math.round(frac*100)+' %'],['T_H ∝ 1/M',sci(1/Math.max(E.M,0.01))+' 單位'],
+ ['壽命 ∝ M³',sci(Math.pow(Math.max(E.M,0.01),3)/(C.erate*0.06))+' s'],
+ ['狀態',E.done?'已爆發':'蒸發中']];}
 
-/* ---------- loop ---------- */
+/* ============ dispatcher ============ */
+const SCN={
+ kerr:{step:kerrStep,draw:kerrDraw,mini:kerrMini,cards:kerrCards,ph:()=>'克爾黑洞 a*='+C.spin.toFixed(2)},
+ bin:{step:binStep,draw:binDraw,mini:binMini,cards:binCards,
+  ph:()=>B.phase==='inspiral'?'旋近 a='+binSep().toFixed(1):B.phase==='ringdown'?'鈴宕':'穩定殘骸'},
+ tde:{step:tdeStep,draw:tdeDraw,mini:tdeMini,cards:tdeCards,
+  ph:()=>T.phase==='approach'?'恆星接近中':T.phase==='stream'?'碎屑流回歸':'吸積耀發'},
+ lens:{step:lensStep,draw:lensDraw,mini:lensMini,cards:lensCards,ph:()=>'微透鏡巡天'},
+ evap:{step:evapStep,draw:evapDraw,mini:evapMini,cards:evapCards,ph:()=>E.done?'終端爆發':'霍金蒸發中'}};
+
+const cardsEl=document.getElementById('cards'),phaseEl=document.getElementById('phase'),clockEl=document.getElementById('clock');
+let cardT=0;
+function updCards(dt){cardT-=dt;if(cardT>0)return;cardT=0.25;
+ const cs=SCN[C.sc].cards();
+ cardsEl.innerHTML=cs.map(c=>'<div class="card"><div class="k">'+c[0]+'</div><div class="v">'+c[1]+'</div></div>').join('');
+ phaseEl.textContent=SCN[C.sc].ph();
+ const m=Math.floor(simT/60),s2=Math.floor(simT%60);
+ clockEl.textContent='T+'+String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0');}
+
 let last=0;
 function frame(t){requestAnimationFrame(frame);
+ if(!W)resize();
  const dt=Math.min((t-last)/1000,0.05);last=t;
- if(!paused){C.mode==='single'?stepSingle(dt):stepBinary(dt);}
- C.mode==='single'?drawSingle():drawBinary();
- updStats(dt);}
+ const s2=SCN[C.sc];
+ if(!paused){simT+=dt;s2.step(dt);}
+ s2.draw();s2.mini();drawStrip();updCards(dt);}
 requestAnimationFrame(frame);
 
-/* ---------- UI ---------- */
+/* ============ UI ============ */
 function bind(id,key,fmt,cb){const el=document.getElementById(id),out=document.getElementById(id+'-v');
- const u=()=>{C[key]=parseFloat(el.value);out.textContent=fmt(C[key]);if(cb)cb();};
- el.addEventListener('input',u);out.textContent=fmt(C[key]);}
+ const u=()=>{C[key]=parseFloat(el.value);if(out)out.textContent=fmt(C[key]);if(cb)cb();};
+ el.addEventListener('input',u);if(out)out.textContent=fmt(C[key]);}
 bind('inc','inc',v=>Math.round(v)+'\u00B0');
+bind('azi','azi',v=>Math.round(v)+'\u00B0');
+bind('zoom','zoom',v=>v.toFixed(2)+'\u00D7');
 bind('spd','spd',v=>v.toFixed(2)+'\u00D7');
 bind('dop','dop',v=>v.toFixed(2));
 bind('lens','lens',v=>v.toFixed(2));
 bind('tmp','tmp',v=>Math.round(v).toLocaleString()+' K');
-bind('rout','rout',v=>v.toFixed(1)+' Rs',seedSingle);
+bind('mdot','mdot',v=>v.toFixed(2)+' Ṁ_E');
+bind('logm','logm',v=>sci(Math.pow(10,v))+' M☉');
+bind('spin','spin',v=>v.toFixed(3),kerrReset);
+bind('rout','rout',v=>v.toFixed(1)+' Rs',kerrReset);
 bind('num','num',v=>String(Math.round(v)));
-bind('q','q',v=>v.toFixed(2),resetBinary);
-bind('a0','a0',v=>v.toFixed(1)+' Rs',resetBinary);
+bind('jpow','jpow',v=>v.toFixed(2));
+bind('jprec','jprec',v=>Math.round(v)+'\u00B0');
+bind('q','q',v=>v.toFixed(2),binReset);
+bind('a0','a0',v=>v.toFixed(1)+' Rs',binReset);
+bind('ecc','ecc',v=>v.toFixed(2),binReset);
 bind('rate','rate',v=>v.toFixed(2));
-document.getElementById('ripples').addEventListener('change',e=>C.ripples=e.target.checked);
-document.getElementById('grid').addEventListener('change',e=>C.grid=e.target.checked);
+bind('rp','rp',v=>v.toFixed(1)+' Rs');
+bind('mstar','mstar',v=>v.toFixed(1)+' M☉');
+bind('thE','thE',v=>v.toFixed(1));
+bind('lvel','lvel',v=>v.toFixed(1));
+bind('dens','dens',v=>String(Math.round(v)),lensReset);
+bind('em0','em0',v=>v.toFixed(1));
+bind('erate','erate',v=>v.toFixed(1)+'\u00D7');
+document.getElementById('band').addEventListener('change',e=>C.band=e.target.value);
+for(const id of['jet','kick','ripples','grid','ering'])
+ document.getElementById(id).addEventListener('change',e=>C[id]=e.target.checked);
+document.getElementById('resetbin').addEventListener('click',binReset);
+document.getElementById('resettde').addEventListener('click',tdeReset);
+document.getElementById('resetevap').addEventListener('click',evapReset);
 
-const tabS=document.getElementById('tab-s'),tabB=document.getElementById('tab-b');
-const gS=document.getElementById('g-single'),gB=document.getElementById('g-binary');
-const resetBtn=document.getElementById('reset'),note=document.getElementById('modenote');
-function setMode(m){C.mode=m;
- tabS.classList.toggle('on',m==='single');tabB.classList.toggle('on',m==='binary');
- gS.classList.toggle('hidden',m!=='single');gB.classList.toggle('hidden',m!=='binary');
- resetBtn.classList.toggle('hidden',m!=='binary');
- note.textContent=m==='single'
-  ?'內側物質以克卜勒速度公轉，接近你的一側因相對論性集束而增亮偏藍。'
-  :'兩黑洞因重力波輻射損失能量而逐漸旋近，最終合併，經鈴宕後留下較輕的殘骸——差額質量以重力波形式輻射。';
- if(m==='binary')resetBinary();}
-tabS.addEventListener('click',()=>setMode('single'));
-tabB.addEventListener('click',()=>setMode('binary'));
-tabS.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')setMode('single');});
-tabB.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')setMode('binary');});
+const groups={kerr:'g-kerr',bin:'g-bin',tde:'g-tde',lens:'g-lens',evap:'g-evap'};
+document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{
+ C.sc=b.dataset.sc;
+ document.querySelectorAll('.sbtn').forEach(x=>x.classList.toggle('on',x===b));
+ for(const k in groups)document.getElementById(groups[k]).classList.toggle('hidden',k!==C.sc);
+ SB.i=0;SB.max=0.05;
+ if(C.sc==='bin')binReset();if(C.sc==='tde')tdeReset();
+ if(C.sc==='lens')lensReset();if(C.sc==='evap')evapReset();
+ if(C.sc==='kerr')kerrReset();}));
 
 const pauseBtn=document.getElementById('pause');
 function togglePause(){paused=!paused;pauseBtn.textContent=paused?'播放':'暫停';}
 pauseBtn.addEventListener('click',togglePause);
-resetBtn.addEventListener('click',resetBinary);
-addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){e.preventDefault();togglePause();}});
+addEventListener('keydown',e=>{if(e.code==='Space'&&!/INPUT|BUTTON|SELECT/.test(e.target.tagName)){e.preventDefault();togglePause();}});
 
-/* drag to tilt */
 let drag=null;
-cv.addEventListener('pointerdown',e=>{drag={y:e.clientY,inc:C.inc};cv.setPointerCapture(e.pointerId);});
-cv.addEventListener('pointermove',e=>{if(!drag)return;
+cv.addEventListener('pointerdown',e=>{
+ if(C.sc==='lens'){Lz.drag=true;drag={lens:true};cv.setPointerCapture(e.pointerId);return;}
+ drag={x:e.clientX,y:e.clientY,inc:C.inc,azi:C.azi};cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{
+ if(!drag)return;
+ if(drag.lens){const r=cv.getBoundingClientRect();
+  const sc=Math.min(W,H)*C.zoom;
+  Lz.x=((e.clientX-r.left)-W/2)/sc;Lz.z=((e.clientY-r.top)-H/2)/sc;return;}
  C.inc=Math.max(0,Math.min(88,drag.inc+(e.clientY-drag.y)*0.25));
- const el=document.getElementById('inc');el.value=C.inc;
- document.getElementById('inc-v').textContent=Math.round(C.inc)+'\u00B0';});
-cv.addEventListener('pointerup',()=>drag=null);
+ C.azi=(drag.azi+(e.clientX-drag.x)*0.35+360)%360;
+ document.getElementById('inc').value=C.inc;
+ document.getElementById('inc-v').textContent=Math.round(C.inc)+'\u00B0';
+ document.getElementById('azi').value=C.azi;
+ document.getElementById('azi-v').textContent=Math.round(C.azi)+'\u00B0';});
+cv.addEventListener('pointerup',()=>{drag=null;Lz.drag=false;});
+cv.addEventListener('wheel',e=>{e.preventDefault();
+ C.zoom=Math.max(0.4,Math.min(2.5,C.zoom*(e.deltaY<0?1.08:0.925)));
+ document.getElementById('zoom').value=C.zoom;
+ document.getElementById('zoom-v').textContent=C.zoom.toFixed(2)+'\u00D7';},{passive:false});
+
+logEvt('觀測台上線 — 選擇左側情境開始');
 </script>
 </body>
 </html>
